@@ -7,6 +7,7 @@ import 'package:BubbleBee/view/dialogs/tutorial_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hexagon/hexagon.dart';
+import 'package:hive_flutter/adapters.dart';
 import 'package:sizer/sizer.dart';
 import 'package:slide_countdown/slide_countdown.dart';
 
@@ -35,12 +36,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   bool firstRun = true;
 
+  bool lost = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      await showTutorialDialog(context);
-      firstRun = false;
+      final box = getIt.get<LazyBox<String>>();
+      final firstRun = await box.get(isFirstRun);
+
+      if (firstRun != 'true') {
+        await showTutorialDialog(context);
+        box.put(isFirstRun, 'true');
+      }
+
       _initializeGame();
     });
   }
@@ -112,9 +121,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       child: Column(
                         children: [
                           GestureDetector(
-                            onTap: () {
-                              // _nextLevel();
-                            },
+                            // onTap: () {
+                            //   _nextLevel();
+                            // },
+                            // onHorizontalDragStart: (d) {
+                            //   _nextLevel(fail: true);
+                            // },
                             child: Container(
                               padding: EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -140,14 +152,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     duration: gameDuration!,
                                     countUp: false,
                                     onChanged: (value) async {
-                                      if (firstRun) return;
-
                                       timeRemaining = value.inSeconds - 1;
                                       gameDuration = value;
                                       if (value.inSeconds == 0 &&
                                           game.state.value ==
                                               GameState.playing) {
                                         timeRemaining = 0;
+
                                         game.updateGameState(GameState.lost);
                                       }
                                     },
@@ -184,21 +195,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       child: Padding(
                         padding: EdgeInsets.all(2.h),
                         child: IconButton(
-                          onPressed: () async {
+                          onPressed: () {
                             ref
                                 .read(gameProvider)
                                 .updateGameState(GameState.paused);
-                            final response =
-                                await showMenuDialog(context, onPressed: () {});
-                            if (response is bool && response) {
-                              ref
-                                  .read(gameProvider)
-                                  .updateGameState(GameState.playing);
-                            } else {
-                              ref
-                                  .read(gameProvider)
-                                  .updateGameState(GameState.idle);
-                            }
                           },
                           icon: Icon(Icons.settings,
                               color: Colors.white, size: 23.sp),
@@ -213,6 +213,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
+  _pauseGame() async {
+    if (staticGameProvider.state.value != GameState.paused) {
+      ref.read(gameProvider).updateGameState(GameState.paused);
+    }
+    final response = await showMenuDialog(context, onPressed: () {});
+    if (response is bool && response) {
+      ref.read(gameProvider).updateGameState(GameState.playing);
+    } else {
+      ref.read(gameProvider).updateGameState(GameState.idle);
+    }
+  }
+
   void _initializeGame() async {
     levelData = staticGameProvider.generateLevelData();
     timeRemaining = levelData.timeLimit.toInt();
@@ -221,10 +233,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     staticGameProvider.updateGameState(GameState.playing);
   }
 
-  void _nextLevel() {
-    staticGameProvider.updateGameState(GameState.won);
-    staticGameProvider.currentLevelState?.levelDifference += 10;
+  void _nextLevel({bool fail = false}) {
+    staticGameProvider.updateGameState(fail ? GameState.lost : GameState.won);
     staticGameProvider.continuePlaying();
+    _initializeGame();
   }
 
   listenToGameEvents(GameProvider provider) {
@@ -232,6 +244,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (lastState == provider.state.value) return;
       final wasPaused = lastState == GameState.paused;
       lastState = provider.state.value;
+      print('## THE STATE IS ${provider.state.value}');
       switch (provider.state.value) {
         case GameState.playing:
           if (!wasPaused) {
@@ -241,6 +254,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             gameDuration = Duration(seconds: timeRemaining.ceil());
             counterKey = Key('${DateTime.now().millisecondsSinceEpoch}');
             setState(() {});
+          } else {
+            if (timeRemaining < 0) {
+              provider.updateGameState(GameState.lost);
+            }
           }
           break;
         case GameState.won:
@@ -249,6 +266,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           });
           break;
         case GameState.lost:
+          lost = true;
           if (timeRemaining == 0) {
             _showTimesUpDialog();
           } else {
@@ -256,6 +274,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           }
           break;
         case GameState.paused:
+          if (lost) {
+            provider.state.value = GameState.playing;
+            break;
+          }
+          _pauseGame();
           break;
         default:
           break;
@@ -263,15 +286,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     });
   }
 
-  void _showTimesUpDialog() {
-    showGameFailDialog(context,
+  void _showTimesUpDialog() async {
+    await showGameFailDialog(context,
         title: 'Time\'s up!',
         subtitle: 'You ran out of time. Do you want to retry?');
+
+    lost = false;
   }
 
-  void showGameFailed() {
-    showGameFailDialog(context,
+  void showGameFailed() async {
+    await showGameFailDialog(context,
         title: 'Game Over',
         subtitle: 'You tapped the wrong cell. Do you want to retry?');
+
+    lost = false;
   }
 }

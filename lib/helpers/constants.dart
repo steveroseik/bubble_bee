@@ -3,6 +3,8 @@ import 'dart:ui';
 const localStoragePath = 'local_storage';
 const currentUserPath = 'current_user';
 const adTrackerPath = 'ad_tracker';
+const isFirstRun = 'is_first_run';
+const safeAppExit = 'safe_app_exit';
 
 const Color kNeonBlue = Color(0xFF4DD8F9);
 const Color kVibrantPink = Color(0xFFFF66C4);
@@ -12,6 +14,7 @@ const Color kLimeGreen = Color(0xFFA4DE02);
 
 enum AdStatus {
   loading,
+  active,
   loaded,
   failed,
 }

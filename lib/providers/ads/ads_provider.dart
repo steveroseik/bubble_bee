@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:BubbleBee/providers/remote_config_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../helpers/constants.dart';
+import '../get_it.dart';
 import 'ad_helper.dart';
 import 'ads_tracker.dart';
 
@@ -17,6 +19,8 @@ class AdsController extends ChangeNotifier {
   BannerAd? _bannerAd;
 
   GameAdTracker tracker = GameAdTracker();
+
+  int get adState => getIt.get<RemoteConfigProvider>().adState;
 
   ValueNotifier<AdStatus> interstitialStatus =
       ValueNotifier<AdStatus>(AdStatus.loading);
@@ -85,14 +89,13 @@ class AdsController extends ChangeNotifier {
     switch (status) {
       case AdStatus.loaded:
         await _interstitialAd?.show();
-
         break;
       case AdStatus.failed:
         if (!retry) {
           return showInterstitialAd(retry: true);
         }
         break;
-      case AdStatus.loading:
+      default:
         break;
     }
     return status;
@@ -105,9 +108,10 @@ class AdsController extends ChangeNotifier {
     final status = await waitUntilChanged(rewardedStatus);
     switch (status) {
       case AdStatus.loaded:
-        _rewardedAd?.show(
+        await _rewardedAd?.show(
             onUserEarnedReward: (AdWithoutView ad, RewardItem reward) =>
                 onUserEarnedReward.call());
+
         break;
       case AdStatus.failed:
         if (!retry) {
@@ -115,21 +119,36 @@ class AdsController extends ChangeNotifier {
               onUserEarnedReward: onUserEarnedReward, retry: true);
         }
         break;
-      case AdStatus.loading:
+      default:
         break;
     }
     return status;
   }
 
-  receiveGameUpdate({required bool failed}) async {
-    final showAd = tracker.updateGamesUntilAd(failed ? -2 : -1);
-    if (showAd) {
+  receiveGameUpdate({bool failed = false}) {
+    tracker.updateGamesUntilAd(failed ? -2 : -1);
+  }
+
+  Future<bool> tryToShowAd({Duration? delay}) async {
+    final shouldShow = tracker.shouldShowAd();
+    if (shouldShow) {
+      if (delay != null) await Future.delayed(delay);
+
       await showInterstitialAd();
+      return true;
+    } else {
+      return false;
     }
   }
 
   void _loadInterstitialAd() {
+    if (adState == 0) {
+      interstitialStatus.value = AdStatus.failed;
+      return;
+    }
+
     interstitialStatus.value = AdStatus.loading;
+
     InterstitialAd.load(
       adUnitId: AdHelper.interstitialAdUnitId,
       request: AdRequest(),
@@ -139,6 +158,10 @@ class AdsController extends ChangeNotifier {
           _interstitialAd = ad;
 
           ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdShowedFullScreenContent: (ad) {
+              interstitialStatus.value = AdStatus.active;
+              tracker.reset();
+            },
             onAdDismissedFullScreenContent: (ad) {
               interstitialStatus.value = AdStatus.loading;
               _loadInterstitialAd();
@@ -154,6 +177,10 @@ class AdsController extends ChangeNotifier {
   }
 
   void _loadRewardedAd() {
+    if (adState == 0) {
+      rewardedStatus.value = AdStatus.failed;
+      return;
+    }
     rewardedStatus.value = AdStatus.loading;
     RewardedAd.load(
       adUnitId: AdHelper.rewardedAdUnitId,

@@ -1,6 +1,8 @@
+import 'package:BubbleBee/providers/get_it.dart';
 import 'package:BubbleBee/view/game_button.dart';
 import 'package:BubbleBee/view/game_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/adapters.dart';
 import 'package:sizer/sizer.dart';
 
 import '../helpers/constants.dart';
@@ -46,7 +48,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             child: Padding(
               padding: EdgeInsets.only(bottom: 10.h),
               child: GameButton(
-                onPressed: () {
+                onPressed: () async {
+                  await getIt.get<LazyBox<String>>().delete(safeAppExit);
                   Navigator.of(context).pop();
                   Navigator.of(context)
                       .push(MaterialPageRoute(builder: (_) => GameScreen()));

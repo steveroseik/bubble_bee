@@ -171,7 +171,6 @@ class _ThreeDButtonState extends ConsumerState<ThreeDButton>
       vibration.vibrate(pattern: [200, 100, 200, 100], intensities: [1, 255]);
 
       ref.read(gameProvider).updateGameState(GameState.lost);
-      adsController.receiveGameUpdate(failed: true);
     }
   }
 

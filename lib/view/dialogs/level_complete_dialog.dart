@@ -1,10 +1,16 @@
 import 'package:BubbleBee/providers/audio/audio_provider.dart';
+import 'package:BubbleBee/providers/game_provider.dart';
 import 'package:BubbleBee/providers/get_it.dart';
 import 'package:confetti/confetti.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sizer/sizer.dart';
 
+import '../../helpers/constants.dart';
+import '../../providers/ads/ads_provider.dart';
 import '../game_button.dart';
+import '../on_boarding.dart';
 
 showLevelCompleteDialog(BuildContext context,
     {required Function() onPressed}) async {
@@ -55,7 +61,7 @@ class _LevelCompleteDialogState extends State<LevelCompleteDialog> {
               color: Colors.transparent,
               child: Container(
                 width: 80.w,
-                padding: EdgeInsets.all(6.w),
+                padding: EdgeInsets.fromLTRB(6.w, 6.w, 6.w, 3.w),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   gradient: const LinearGradient(
@@ -68,54 +74,100 @@ class _LevelCompleteDialogState extends State<LevelCompleteDialog> {
                         blurRadius: 3)
                   ],
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                child: Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
                   children: [
-                    Text(
-                      "You have completed the level!",
-                      style: const TextStyle(
-                        color: Colors.white,
+                    Positioned(
+                      top: -5.h,
+                      right: -5.h,
+                      child: Image.asset(
+                        'assets/images/bee.png',
+                        height: 10.h,
                       ),
                     ),
-                    SizedBox(height: 1.h),
-                    Text(
-                      "You Won!",
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 35.0,
-                          fontWeight: FontWeight.w700),
-                    ),
-                    SizedBox(height: 3.h),
-                    GameButton(
-                      height: 6.h,
-                      baseDecoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.red, Colors.red.shade900],
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          "You have completed the level!",
+                          style: const TextStyle(
+                            color: Colors.white,
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      topDecoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topRight,
-                          end: Alignment.bottomLeft,
-                          colors: [Colors.orangeAccent, Colors.deepOrange],
+                        SizedBox(height: 1.h),
+                        Text(
+                          "You Won!",
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 35.0,
+                              fontWeight: FontWeight.w700),
                         ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      onPressed: () {
-                        widget.onPressed.call();
-                        Navigator.of(context).pop();
-                      },
-                      aspectRatio: 3 / 1,
-                      enableShimmer: false,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Center(
-                          child: Text(
-                        'Next Level',
-                        style: const TextStyle(color: Colors.white),
-                      )),
+                        SizedBox(height: 3.h),
+                        Consumer(builder: (context, ref, child) {
+                          final adsController = ref.watch(adsProvider);
+                          return ValueListenableBuilder(
+                              valueListenable: adsController.interstitialStatus,
+                              builder: (context, value, child) {
+                                return GameButton(
+                                  height: 6.h,
+                                  baseDecoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Colors.red, Colors.red.shade900],
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  topDecoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topRight,
+                                      end: Alignment.bottomLeft,
+                                      colors: [
+                                        Colors.orangeAccent,
+                                        Colors.deepOrange
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  onPressed: value == AdStatus.active ||
+                                          adsController.tracker.shouldShowAd()
+                                      ? null
+                                      : () {
+                                          widget.onPressed.call();
+                                          Navigator.of(context).pop();
+                                        },
+                                  aspectRatio: 3 / 1,
+                                  enableShimmer: false,
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Center(
+                                      child: Text(
+                                    'Next Level',
+                                    style: const TextStyle(color: Colors.white),
+                                  )),
+                                );
+                              });
+                        }),
+                        SizedBox(height: 1.h),
+                        Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Consumer(builder: (context, ref, child) {
+                            return TextButton.icon(
+                                onPressed: () {
+                                  ref.read(gameProvider).safeExit();
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              WelcomeScreen()));
+                                },
+                                style: TextButton.styleFrom(
+                                    foregroundColor: Colors.white),
+                                icon: Icon(CupertinoIcons.chevron_back),
+                                label: Text('Save and Exit'));
+                          }),
+                        )
+                      ],
                     ),
                   ],
                 ),

@@ -39,8 +39,16 @@ class GameProvider extends ChangeNotifier {
 
   loadUserData() async {
     final data = await box.get(currentUserPath);
+    final safeExit = await box.get(safeAppExit);
+    await box.delete(safeAppExit);
     if (data != null) {
-      return GameStatistics.fromMap(jsonDecode(data));
+      if (safeExit != null && safeExit == "true") {
+        return GameStatistics.fromMap(jsonDecode(data));
+      } else {
+        final statistics = GameStatistics.fromMap(jsonDecode(data));
+        return statistics.copyWith(
+            currentLevel: max(statistics.currentLevel ~/ 2, 1));
+      }
     } else {
       final shortId = ShortUid.create();
       return GameStatistics(
@@ -65,20 +73,21 @@ class GameProvider extends ChangeNotifier {
 
     int numberOfTaps = _calculateNumberOfTaps();
 
-    // Generate smart random cells to tap
-    List<(int, int)> tapCells =
-        _generateSmartRandomCells(gridWidth, gridHeight, numberOfTaps);
-
     // Add 'do not tap' cells to increase complexity
     List<(int, int)> doNotTapCells = [];
     int numberOfDoNotTapCells =
         _calculateNumberOfNoTaps(); // Increase with level
-    doNotTapCells = _generateSmartRandomCells(
-        gridWidth, gridHeight, numberOfDoNotTapCells,
-        exclude: tapCells.toSet());
+    doNotTapCells =
+        _generateSmartRandomCells(gridWidth, gridHeight, numberOfDoNotTapCells);
+
+    // Generate smart random cells to tap
+    List<(int, int)> tapCells = _generateSmartRandomCells(
+        gridWidth, gridHeight, numberOfTaps,
+        exclude: doNotTapCells.toSet());
 
     // Calculate the time limit based on the level and grid size
-    double timeLimit = _calculateTimeLimit(gridWidth, gridHeight, numberOfTaps);
+    double timeLimit =
+        _calculateTimeLimit(gridWidth, gridHeight, tapCells.length);
 
     // Return level data as a map
     currentLevelState = LevelState(
@@ -123,8 +132,8 @@ class GameProvider extends ChangeNotifier {
   /// Calculate the time limit for each level.
   double _calculateTimeLimit(int gridWidth, int gridHeight, int numberOfTaps) {
     // Average time needed for a player to tap one cell is 0.5 seconds
-    double averageTapTime = 0.6 -
-        (0.3 *
+    double averageTapTime = 0.5 -
+        (0.2 *
             ((currentLevel % gridExpansionInterval) / gridExpansionInterval));
 
     // Base time formula focuses more on the number of taps needed
@@ -163,10 +172,14 @@ class GameProvider extends ChangeNotifier {
     // Generate addition taps based on the level
 
     // Calculate the level factor
+    /// ratio 0-1
     double levelFactor =
         (currentLevel % gridExpansionInterval) / gridExpansionInterval;
+
+    double goodEvilRatio =
+        min((currentLevel ~/ gridExpansionInterval) * 3, 10) / 100;
     // Maximum number of tiles to tap
-    int maxLevelTiles = (baseMaxTiles * 0.55).ceil();
+    int maxLevelTiles = (baseMaxTiles * (0.50 - goodEvilRatio)).ceil();
     // Additional taps based on the level factor
     int additionalTaps = (levelFactor * maxLevelTiles).ceil();
 
@@ -178,10 +191,20 @@ class GameProvider extends ChangeNotifier {
 
   int _calculateNumberOfNoTaps() {
     int baseMaxTiles = gridWidth * gridHeight;
-    int levelTiles = (baseMaxTiles * 0.15).ceil();
 
+    int levelTiles = (baseMaxTiles * 0.25).ceil();
+
+    double goodEvilRatio =
+        min((currentLevel ~/ gridExpansionInterval), 10) / 10;
+    goodEvilRatio *= 6;
+
+    /// ratio 0-1
     double levelFactor =
         (currentLevel % gridExpansionInterval) / gridExpansionInterval;
+
+    levelFactor = levelFactor == 0 ? 0.033 : levelFactor;
+    levelFactor = min(levelFactor + goodEvilRatio, 1.4);
+
     double numberOfNoTaps = levelTiles * levelFactor;
 
     return numberOfNoTaps.ceil();
@@ -206,7 +229,13 @@ class GameProvider extends ChangeNotifier {
     updateGameState(GameState.playing);
   }
 
-  updateGameState(GameState newState, {bool notify = true}) {
+  safeExit() async {
+    await box.put(safeAppExit, "true");
+    await updateLevel(currentLevelState);
+    // updateGameState(GameState.idle);
+  }
+
+  updateGameState(GameState newState, {bool notify = true}) async {
     if (state.value == newState) return;
     state.value = newState;
     switch (state.value) {
@@ -216,11 +245,14 @@ class GameProvider extends ChangeNotifier {
         break;
       case GameState.won:
         currentLevelState?.levelDifference = 1;
+        adsController.receiveGameUpdate();
+        await adsController.tryToShowAd(delay: const Duration(seconds: 1));
         break;
       case GameState.lost:
         currentLevelState?.levelDifference =
             -((currentLevelState?.level ?? 1) ~/ 2);
-
+        adsController.receiveGameUpdate(failed: true);
+        await adsController.tryToShowAd(delay: const Duration(seconds: 1));
       case GameState.paused:
         break;
     }

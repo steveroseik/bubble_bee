@@ -49,6 +49,26 @@ class GameStatistics {
       totalNumberOfTaps: map['totalNumberOfTaps'],
       totalSecondsSaved: map['totalSecondsSaved']);
 
+  GameStatistics copyWith({
+    String? id,
+    String? name,
+    int? currentLevel,
+    List<int>? totalFalls,
+    List<LevelState>? levels,
+    int? totalNumberOfTaps,
+    int? totalSecondsSaved,
+  }) {
+    return GameStatistics(
+      id: id ?? _id,
+      name: name ?? _name,
+      currentLevel: currentLevel ?? _currentLevel,
+      totalFalls: totalFalls ?? _totalFalls,
+      levels: levels ?? _levels,
+      totalNumberOfTaps: totalNumberOfTaps ?? _totalNumberOfTaps,
+      totalSecondsSaved: totalSecondsSaved ?? _totalSecondsSaved,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': _id,

@@ -1,7 +1,9 @@
 import 'package:BubbleBee/providers/ads/ads_provider.dart';
+import 'package:BubbleBee/providers/app_life_cycle/app_life_cycle_provider.dart';
 import 'package:BubbleBee/providers/game_provider.dart';
 import 'package:BubbleBee/providers/get_it.dart';
 import 'package:BubbleBee/view/on_boarding.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,8 +11,14 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:sizer/sizer.dart';
 
+import 'firebase_options.dart';
+import 'helpers/constants.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   await Hive.initFlutter();
   MobileAds.instance.initialize();
@@ -31,18 +39,28 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   bool loading = true;
+
+  AppLifecycleState? prevState;
 
   @override
   void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((t) async {
       await ref.read(gameProvider).initializeGameData();
       setState(() {
         loading = false;
       });
     });
-    super.initState();
+  }
+
+  @override
+  dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    getIt.get<AppLifecycleProvider>().dispose();
+    super.dispose();
   }
 
   @override
@@ -60,5 +78,19 @@ class _MyAppState extends ConsumerState<MyApp> {
         home: loading ? CircularProgressIndicator() : WelcomeScreen(),
       );
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    super.didChangeAppLifecycleState(state);
+    getIt.get<AppLifecycleProvider>().state = state;
+    if (prevState == state) return;
+    prevState = state;
+    if (state == AppLifecycleState.paused) {
+      final staticGameProvider = ref.read(gameProvider);
+      if (mounted && staticGameProvider.state.value == GameState.playing) {
+        staticGameProvider.updateGameState(GameState.paused);
+      }
+    }
   }
 }

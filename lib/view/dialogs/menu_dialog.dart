@@ -1,5 +1,6 @@
 import 'package:BubbleBee/providers/audio/audio_provider.dart';
 import 'package:BubbleBee/providers/get_it.dart';
+import 'package:BubbleBee/view/dialogs/tutorial_dialog.dart';
 import 'package:BubbleBee/view/on_boarding.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -92,6 +93,47 @@ class _MenuDialogScreenState extends State<MenuDialogScreen> {
                       SizedBox(width: 2.w),
                       Text(
                         'Continue',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                GameButton(
+                  height: 6.h,
+                  baseDecoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.deepOrange.shade900,
+                        Colors.deepOrange.shade700
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  topDecoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                      colors: [Colors.amber.shade900, Colors.amber.shade800],
+                    ),
+                  ),
+                  onPressed: () {
+                    showTutorialDialog(context);
+                  },
+                  aspectRatio: 3 / 1,
+                  enableShimmer: false,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.gamepad_rounded,
+                        color: Colors.white,
+                      ),
+                      SizedBox(width: 2.w),
+                      Text(
+                        'Tutorial',
                         style: const TextStyle(color: Colors.white),
                       ),
                     ],
