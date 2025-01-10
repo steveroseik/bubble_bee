@@ -7,7 +7,7 @@ import 'package:hive_flutter/adapters.dart';
 import '../get_it.dart';
 import '../remote_config_provider.dart';
 
-const adCountMax = 1;
+const adCountMax = 8;
 
 class GameAdTracker extends ChangeNotifier {
   // Counts for different game types
