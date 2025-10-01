@@ -50,3 +50,6 @@ app.*.map.json
 
 # strings
 /android/app/src/main/res/values/strings.xml
+
+#firebase options
+/lib/firebase_options.dart
