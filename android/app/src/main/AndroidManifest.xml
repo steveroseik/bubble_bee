@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="BubbleBee"
         android:name="${applicationName}"
@@ -23,6 +26,18 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <!-- HTTPS host + optional path prefix -->
+                <data
+                    android:scheme="https"
+                    android:host="quadroproduction.com"
+                    android:pathPrefix="/bubblebee" />
             </intent-filter>
         </activity>
         <meta-data

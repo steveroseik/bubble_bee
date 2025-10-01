@@ -1,3 +1,7 @@
+buildscript {
+    ext.kotlin_version = '2.1.0'
+}
+
 plugins {
     id "com.android.application"
     // START: FlutterFire Configuration
@@ -16,8 +20,8 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.roseik.bubblebee"
-    compileSdkVersion 34
-    ndkVersion "25.1.8937393"  // Added NDK version
+    compileSdkVersion 36
+    ndkVersion "27.0.12077973"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17  // Updated to Java 17
@@ -61,4 +65,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation 'com.facebook.android:facebook-android-sdk:latest.release'
 }

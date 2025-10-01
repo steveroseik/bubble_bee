@@ -22,6 +22,26 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>fb1790551278245797</string>
+      </array>
+      </dict>
+    </array>
+    <key>FacebookAppID</key>
+    <string>1790551278245797</string>
+    <key>FacebookClientToken</key>
+    <string>df69c0879b6c9c88ae4294d2262fa6ae</string>
+    <key>FacebookDisplayName</key>
+    <string>BubbleBee</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>fbapi</string>
+        <string>fb-messenger-share-api</string>
+    </array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>GADApplicationIdentifier</key>
@@ -36,6 +56,8 @@
 	<string>Main</string>
 	<key>UIRequiresFullScreen</key>
 	<true/>
+	<key>FlutterDeepLinkingEnabled</key>
+    <false/>
 	<key>UIStatusBarHidden</key>
 	<true/>
 	<key>UISupportedInterfaceOrientations</key>

@@ -3,6 +3,7 @@ import 'package:BubbleBee/providers/app_life_cycle/app_life_cycle_provider.dart'
 import 'package:BubbleBee/providers/game_provider.dart';
 import 'package:BubbleBee/providers/get_it.dart';
 import 'package:BubbleBee/view/on_boarding.dart';
+import 'package:facebook_app_events/facebook_app_events.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,11 +20,12 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
   await Hive.initFlutter();
   MobileAds.instance.initialize();
   await GetItProvider.initialize();
 
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -43,6 +45,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   bool loading = true;
 
   AppLifecycleState? prevState;
+
+  static final facebookAppEvents = FacebookAppEvents();
 
   @override
   void initState() {
@@ -66,7 +70,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final eagerAds = ref.watch(adsProvider);
-    return ResponsiveSizer(builder: (context, orientation, size) {
+    return Sizer(builder: (context, orientation, size) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Flutter Demo',
